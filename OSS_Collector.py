@@ -52,22 +52,22 @@ def normalize(string):
 
 # python 주석 제거
 def removePyComment(code):
-    # 큰 따옴표
-    code = re.sub(r'(""".+?"""|\'\'\'.+?\'\'\')', '', code, flags=re.DOTALL)
-    # 작은따옴표
-    code = re.sub(r"('''|\"\"\").*?('''|\"\"\")", "", code, flags=re.DOTALL)
-    return code
+	# 큰 따옴표
+	code = re.sub(r'(""".+?"""|\'\'\'.+?\'\'\')', '', code, flags=re.DOTALL)
+	# 작은따옴표
+	code = re.sub(r"('''|\"\"\").*?('''|\"\"\")", "", code, flags=re.DOTALL)
+	return code
 
 # python 함수 추출
 def extractPyFunction(node):
-    function_bodies = []
-    for item in node.body:
-        if isinstance(item, ast.FunctionDef):
-            function_code = removePyComment(ast.unparse(item))
-            function_node = ast.parse(function_code)
-            function_body = function_node.body[0]  # 함수 정의 노드
-            function_bodies.append(function_body)
-    return function_bodies
+	function_bodies = []
+	for item in node.body:
+		if isinstance(item, ast.FunctionDef):
+			function_code = removePyComment(ast.unparse(item))
+			function_node = ast.parse(function_code)
+			function_body = function_node.body[0]  # 함수 정의 노드
+			function_bodies.append(function_body)
+	return function_bodies
 
 def hashing(repoPath):
 	# This function is for hashing C/C++ functions
@@ -85,7 +85,7 @@ def hashing(repoPath):
 	for path, dir, files in os.walk(repoPath):
 		for file in files:
 			filePath = os.path.join(path, file)
-
+			print(filePath)
 			if file.endswith(possible_c):
 				try:
 					# Execute Ctgas command
@@ -145,39 +145,36 @@ def hashing(repoPath):
 					continue
 
 			elif file.endswith(possible_py):
-				try:
-					with open("example.py", 'r', encoding="UTF-8") as file:
-					    python_code = file.readlines()
-					    lineCnt += len(python_code)
-					    python_code = "\n".join(python_code)
-					    fileCnt += 1
+				with open(filePath, 'r', encoding="UTF-8") as file:
+					python_code = file.readlines()
+					lineCnt += len(python_code)
+					python_code = "\n".join(python_code)
+					fileCnt += 1
 
-					parsed_code = ast.parse(python_code)
-					module_node = ast.Module(body=parsed_code.body, type_ignores=[])
-					function_bodies = extractPyFunction(module_node)
+				parsed_code = ast.parse(python_code)
+				module_node = ast.Module(body=parsed_code.body, type_ignores=[])
+				function_bodies = extractPyFunction(module_node)
+				# 함수 본문을 문자열로 추출
+				for func in function_bodies:
+					function_code = ast.unparse(func)
+					function_lines = function_code.split("\n")
+					function_code = "\n".join(function_lines[1:])
+					funcBody = normalize(function_code)
+					funcHash = computeTlsh(funcBody)
+					if len(funcHash) == 72 and funcHash.startswith("T1"):
+						funcHash = funcHash[2:]
+					elif funcHash == "TNULL" or funcHash == "" or funcHash == "NULL":
+						continue
 
-					# 함수 본문을 문자열로 추출
-					for func in function_bodies:
-					    function_code = ast.unparse(func)
-					    function_lines = function_code.split("\n")
-					    function_code = "\n".join(function_lines[1:])
-					    funcBody = normalize(function_code)
-					    funcHash = computeTlsh(funcBody)
-					    if len(funcHash) == 72 and funcHash.startswith("T1"):
-					        funcHash = funcHash[2:]
-					    elif funcHash == "TNULL" or funcHash == "" or funcHash == "NULL":
-					        continue
+					storedPath = filePath.replace(repoPath, "")
+					if funcHash not in resDict:
+						resDict[funcHash] = []
 
-					    storedPath = filePath.replace(repoPath, "")
-					    if funcHash not in resDict:
-					        resDict[funcHash] = []
+					resDict[funcHash].append(storedPath)
 
-					    resDict[funcHash].append(storedPath)
+					funcCnt += 1
 
-					    funcCnt += 1
-			    except Exception as e:
-					print ("Extract Python Code Error", e)
-					continue
+
 			elif file.endswith(possible_java):
 				try:
 					# Execute Ctgas command
@@ -188,7 +185,7 @@ def hashing(repoPath):
 					# For parsing functions
 					lines 		= f.readlines()
 					allFuncs 	= str(functionList).split('\n')
-					func   		= re.compile(r'(method)')
+					func		= re.compile(r'(method)')
 					number 		= re.compile(r'(\d+)')
 					funcSearch	= re.compile(r'{([\S\s]*)}')
 					tmpString	= ""
@@ -196,7 +193,6 @@ def hashing(repoPath):
 
 					fileCnt 	+= 1
 					resDict = {}
-
 					for i in allFuncs:
 						elemList	= re.sub(r'[\t\s ]{2,}', '', i)
 						elemList 	= elemList.split('\t')
