@@ -1,7 +1,7 @@
 import ast
 import astor
 
-def remoceDocstring(node):
+def removeDocstring(node):
     if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
         node.body = [item for item in node.body if not (isinstance(item, ast.Expr) and hasattr(item, 'value') and isinstance(item.value, ast.Str))]
 
@@ -10,7 +10,7 @@ def process_ast_tree(tree):
         if isinstance(node, ast.Module):
             node.body = [item for item in node.body if not (isinstance(item, ast.Expr) and hasattr(item, 'value') and isinstance(item.value, ast.Str))]
         else:
-            remoceDocstring(node)
+            removeDocstring(node)
     return astor.to_source(parsed)
 
 if __name__ == "__main__":
